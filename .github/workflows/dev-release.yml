@@ -31,9 +31,11 @@ jobs:
       - name: Compress artifacts
         run: |
           echo ${{github.sha}} > ${{github.workspace}}/revision.txt
-          7z rn ${{github.workspace}}/${{matrix.target}}.zip ${{github.workspace}}/build/${{env.BUILD_TYPE}}/${{matrix.target}}.dll plugins/${{matrix.target}}.dll
-          7z rn ${{github.workspace}}/${{matrix.target}}.zip ${{github.workspace}}/build/${{env.BUILD_TYPE}}/${{matrix.target}}.pdb plugins/${{matrix.target}}.pdb
           7z a ${{github.workspace}}/${{matrix.target}}.zip ${{github.workspace}}/ff7remake_/config.txt
+          7z a ${{github.workspace}}/${{matrix.target}}.zip ${{github.workspace}}/build/${{env.BUILD_TYPE}}/${{matrix.target}}.dll
+          7z a ${{github.workspace}}/${{matrix.target}}.zip ${{github.workspace}}/build/${{env.BUILD_TYPE}}/${{matrix.target}}.pdb
+          7z rn ${{github.workspace}}/${{matrix.target}}.zip ${{matrix.target}}.dll plugins/${{matrix.target}}.dll
+          7z rn ${{github.workspace}}/${{matrix.target}}.zip ${{matrix.target}}.pdb plugins/${{matrix.target}}.pdb
           7z a ${{github.workspace}}/${{matrix.target}}.zip ${{github.workspace}}/revision.txt
 
       - name: Hash zip
