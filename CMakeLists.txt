@@ -107,10 +107,7 @@ set(ff7r_SOURCES
 	"src/d3d12/TextureContext.hpp"
 	"src/uevr/API.hpp"
 	"src/uevr/Plugin.hpp"
-	"src/uevr_/API.hpp"
-	"src/uevr_/Plugin.hpp"
 	"src/uevr/API.h"
-	"src/uevr_/API.h"
 	cmake.toml
 )
 
