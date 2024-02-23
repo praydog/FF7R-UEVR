@@ -7,6 +7,7 @@
 #include <d3d12.h>
 #include <utility/Scan.hpp>
 #include <utility/Module.hpp>
+#include <utility/Patch.hpp>
 
 #include <GraphicsMemory.h>
 
@@ -63,7 +64,11 @@ public:
         } data;
     };
 
-    void on_initialize() override {
+    virtual ~FF7Plugin() {
+        m_light_flagspatch.reset();
+    }
+
+    bool resolve_system_resolution() {
         // Find some horrible code that hardcodes a check against 1920
         // so we can find the GSystemResolution
         const auto game = utility::get_executable();
@@ -71,13 +76,49 @@ public:
 
         if (!result) {
             API::get()->log_error("Failed to find GSystemResolution");
-            return;
+            return false;
         }
 
         const auto addr = utility::calculate_absolute(result.value() + 2, 8);
         m_system_resolution = (int32_t*)addr;
 
         API::get()->log_info("Found GSystemResolution at 0x%p", (void*)m_system_resolution);
+        return true;
+    }
+
+    bool render_lights_patch() {
+        // FDeferredShadingSceneRenderer::RenderLights
+        const auto game = utility::get_executable();
+        const auto render_lights_fn = utility::find_function_from_string_ref(game, L"ScreenShadowMaskTexture");
+
+        if (!render_lights_fn) {
+            API::get()->log_error("Failed to find FDeferredShadingSceneRenderer::RenderLights");
+            return false;
+        }
+
+        // const auto light_flag_bit_manip = utility::scan_disasm(*render_lights_fn, 0x500, "83 E1 BF");
+        const auto light_flag_bit_manip = utility::scan_disasm(*render_lights_fn, 0x500, "? 40 00 00 00");
+
+        if (!light_flag_bit_manip) {
+            API::get()->log_error("Failed to find light flag bit manipulation");
+            return false;
+        }
+
+        API::get()->log_info("Found light flag bit manipulation at 0x%p", (void*)light_flag_bit_manip.value());
+
+        // Patch it to OR ECX, -1 (0xFFFFFFFF)
+        // m_light_flagspatch = Patch::create(*light_flag_bit_manip, {0x83, 0xC9, 0xFF}, true);
+        // I was originally going to do that (set all the flags), but it's safer to add the 0x20 flag
+        const auto original_register = *(uint8_t*)light_flag_bit_manip.value();
+        m_light_flagspatch = Patch::create(*light_flag_bit_manip, {(uint16_t)original_register, 0x40 | 0x20}, true);
+        API::get()->log_info("Patched light flag bit manipulation");
+
+        return true;
+    }
+
+    void on_initialize() override {
+        resolve_system_resolution();
+        render_lights_patch();
     }
 
     void on_present() {
@@ -253,6 +294,8 @@ public:
     }
 
 private:
+    Patch::Ptr m_light_flagspatch{};
+
     std::recursive_mutex m_present_mutex{};
 
     API::FRHITexture2D* m_last_engine_ui_tex{nullptr}; // The engine's render target
@@ -306,4 +349,4 @@ private:
 };
 
 
-std::unique_ptr<FF7Plugin> g_plugin{new FF7Plugin()};
+std::unique_ptr<FF7Plugin> g_plugin{std::make_unique<FF7Plugin>()};
