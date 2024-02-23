@@ -163,18 +163,24 @@ public:
             // TODO: Figure out why this crashes DX12
             if (m_cvars.r_InGameUI_FixedWidth->get_int() != w - 1) {
                 m_cvars.r_InGameUI_FixedWidth->set(w - 1);
+                m_cvars.dirty = true;
             }
 
             if (m_cvars.r_InGameUI_FixedHeight->get_int() != h - 1) {
                 m_cvars.r_InGameUI_FixedHeight->set(h - 1);
+                m_cvars.dirty = true;
             }
 
-            if (m_system_resolution == nullptr) {
-                return;
+            if (m_system_resolution != nullptr) {
+                m_system_resolution[0] = vr->get_hmd_width() * 2;
+                m_system_resolution[1] = vr->get_hmd_height();
             }
-
-            m_system_resolution[0] = vr->get_hmd_width() * 2;
-            m_system_resolution[1] = vr->get_hmd_height();
+        } else {
+            if (m_cvars.dirty) {
+                m_cvars.r_InGameUI_FixedWidth->set(0);
+                m_cvars.r_InGameUI_FixedHeight->set(0);
+                m_cvars.dirty = false;
+            }
         }
     }
 
@@ -257,6 +263,7 @@ private:
 
     struct {
         bool initialized{false};
+        bool dirty{false};
         API::IConsoleVariable* r_InGameUI_FixedWidth{nullptr};
         API::IConsoleVariable* r_InGameUI_FixedHeight{nullptr};
     } m_cvars{};
