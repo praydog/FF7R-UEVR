@@ -97,8 +97,8 @@ if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 19.35)
     target_compile_options(DirectXTK12 PRIVATE /Zc:templateScope-)
 endif()
 
-# Target: ff7r
-set(ff7r_SOURCES
+# Target: ff7remake_
+set(ff7remake__SOURCES
 	"src/Plugin.cpp"
 	"src/d3d12/CommandContext.cpp"
 	"src/d3d12/TextureContext.cpp"
@@ -111,33 +111,33 @@ set(ff7r_SOURCES
 	cmake.toml
 )
 
-add_library(ff7r SHARED)
+add_library(ff7remake_ SHARED)
 
-target_sources(ff7r PRIVATE ${ff7r_SOURCES})
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${ff7r_SOURCES})
+target_sources(ff7remake_ PRIVATE ${ff7remake__SOURCES})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${ff7remake__SOURCES})
 
-target_compile_features(ff7r PUBLIC
+target_compile_features(ff7remake_ PUBLIC
 	cxx_std_20
 )
 
-target_compile_options(ff7r PUBLIC
+target_compile_options(ff7remake_ PUBLIC
 	"/GS-"
 	"/bigobj"
 	"/EHa"
 	"/MP"
 )
 
-target_include_directories(ff7r PUBLIC
+target_include_directories(ff7remake_ PUBLIC
 	"src/"
 )
 
-target_link_libraries(ff7r PUBLIC
+target_link_libraries(ff7remake_ PUBLIC
 	kananlib
 	DirectXTK12
 )
 
-set(CMKR_TARGET ff7r)
-target_compile_definitions(ff7r PUBLIC 
+set(CMKR_TARGET ff7remake_)
+target_compile_definitions(ff7remake_ PUBLIC 
     NOMINMAX
     WINVER=0x0A00
 )

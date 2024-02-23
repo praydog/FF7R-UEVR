@@ -55,7 +55,7 @@ if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 19.35)
 endif()
 """
 
-[target.ff7r]
+[target.ff7remake_]
 type = "shared"
 sources = ["src/**.cpp", "src/**.c"]
 headers = ["src/**.hpp", "src/**.h"]
@@ -70,7 +70,7 @@ link-libraries = [
     "DirectXTK12",
 ]
 cmake-after = """
-target_compile_definitions(ff7r PUBLIC 
+target_compile_definitions(ff7remake_ PUBLIC 
     NOMINMAX
     WINVER=0x0A00
 )
