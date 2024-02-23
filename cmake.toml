@@ -1,0 +1,77 @@
+# Reference: https://build-cpp.github.io/cmkr/cmake-toml
+# to build:
+# > cmake -B build
+# > cmake --build build --config Release
+[project]
+name = "ff7r-proj"
+cmake-before=""" 
+add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/MP>)
+"""
+cmake-after = """
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MP")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
+
+set(ASMJIT_STATIC ON CACHE BOOL "" FORCE)
+
+if ("${CMAKE_BUILD_TYPE}" MATCHES "Release")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MT")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MT")
+
+    # Statically compile runtime
+    string(REGEX REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    string(REGEX REPLACE "/MD" "/MT" CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+    string(REGEX REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+    string(REGEX REPLACE "/MD" "/MT" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
+
+    message(NOTICE "Building in Release mode")
+endif()
+
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+"""
+
+# used by kananlib and safetyhook
+[fetch-content.bddisasm]
+git = "https://github.com/bitdefender/bddisasm"
+tag = "70db095765ab2066dd88dfb7bbcc42259ed167c5"
+
+# used by kananlib
+[fetch-content.spdlog]
+git = "https://github.com/gabime/spdlog"
+tag = "76fb40d95455f249bd70824ecfcae7a8f0930fa3"
+
+[fetch-content.kananlib]
+git = "https://github.com/cursey/kananlib"
+tag = "7aa1816f416d605189d9e3bb6a3c8819eb80ef01"
+
+[fetch-content.directxtk12]
+git = "https://github.com/microsoft/DirectXTK12"
+tag = "528801aa6dd8d628c2f756c41a76d300f47de478"
+cmake-before="""
+set(BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+"""
+cmake-after="""
+if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 19.35)
+    target_compile_options(DirectXTK12 PRIVATE /Zc:templateScope-)
+endif()
+"""
+
+[target.ff7r]
+type = "shared"
+sources = ["src/**.cpp", "src/**.c"]
+headers = ["src/**.hpp", "src/**.h"]
+include-directories = [
+    "src/"
+]
+compile-options = ["/GS-", "/bigobj", "/EHa", "/MP"]
+compile-features = ["cxx_std_20"]
+compile-definitions = []
+link-libraries = [
+    "kananlib",
+    "DirectXTK12",
+]
+cmake-after = """
+target_compile_definitions(ff7r PUBLIC 
+    NOMINMAX
+    WINVER=0x0A00
+)
+"""
