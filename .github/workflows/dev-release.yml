@@ -25,13 +25,13 @@ jobs:
         with:
           name: ${{matrix.target}}
           path: |
-            ${{github.workspace}}/build/${{matrix.target}}/*
+            ${{github.workspace}}/build/${{env.BUILD_TYPE}}/*
           if-no-files-found: error
 
       - name: Compress artifacts
         run: |
           echo ${{github.sha}} > ${{github.workspace}}/revision.txt
-          7z a ${{github.workspace}}/${{matrix.target}}.zip ${{github.workspace}}/build/${{matrix.target}}/*
+          7z a ${{github.workspace}}/${{matrix.target}}.zip ${{github.workspace}}/build/${{env.BUILD_TYPE}}/*
           7z a ${{github.workspace}}/${{matrix.target}}.zip ${{github.workspace}}/revision.txt
 
       - name: Hash zip
