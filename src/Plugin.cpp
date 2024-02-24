@@ -109,8 +109,7 @@ public:
         // Patch it to OR ECX, -1 (0xFFFFFFFF)
         // m_light_flagspatch = Patch::create(*light_flag_bit_manip, {0x83, 0xC9, 0xFF}, true);
         // I was originally going to do that (set all the flags), but it's safer to add the 0x20 flag
-        const auto original_register = *(uint8_t*)light_flag_bit_manip.value();
-        m_light_flagspatch = Patch::create(*light_flag_bit_manip, {(uint16_t)original_register, 0x40 | 0x20}, true);
+        m_light_flagspatch = Patch::create(*light_flag_bit_manip + 1, {0x40 | 0x20}, true);
         API::get()->log_info("Patched light flag bit manipulation");
 
         return true;
