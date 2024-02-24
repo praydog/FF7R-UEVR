@@ -1,7 +1,10 @@
 #include <optional>
 #include <mutex>
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/stdout_sinks.h>
 
 #include <wrl.h>
+#include <ppl.h>
 
 #include <d3d11.h>
 #include <d3d12.h>
@@ -54,6 +57,36 @@ HRESULT clear_d3d11_rt(ID3D11Device* device, ID3D11Texture2D* texture, const flo
     return S_OK;
 }
 
+class SimpleScheduler {
+public:
+    SimpleScheduler() {
+        m_evt = CreateEvent(NULL, FALSE, FALSE, NULL);
+
+        Concurrency::SchedulerPolicy policy(1, Concurrency::ContextPriority, THREAD_PRIORITY_HIGHEST);
+        m_impl = Concurrency::Scheduler::Create(policy);
+        m_impl->RegisterShutdownEvent(m_evt);
+        m_impl->Attach();
+    }
+
+    virtual ~SimpleScheduler() {
+        if (m_impl != nullptr) {
+            Concurrency::CurrentScheduler::Detach();
+            m_impl->Release();
+
+            SPDLOG_INFO("Waiting for the scheduler to shut down...");
+            if (WaitForSingleObject(m_evt, 1000) == WAIT_OBJECT_0) {
+                SPDLOG_INFO("Scheduler has shut down.");
+                CloseHandle(m_evt);
+            } else {
+                SPDLOG_ERROR("Failed to wait for the scheduler to shut down.");
+            }
+        }
+    }
+private:
+    Concurrency::Scheduler* m_impl{nullptr};
+    HANDLE m_evt{nullptr};
+};
+
 class FF7Plugin final : public uevr::Plugin {
 public:
     struct IPooledRenderTargetImpl {
@@ -66,6 +99,7 @@ public:
     };
 
     virtual ~FF7Plugin() {
+        std::scoped_lock _{m_present_mutex};
         m_light_flagspatch.reset();
     }
 
@@ -117,6 +151,22 @@ public:
     }
 
     void on_initialize() override {
+        // We manually create a scheduler because doing so with the default WinRT scheduler (which is implicitly created if no scheduler is attached)
+        // causes our DLL to fail to unload properly, which is bad for development for hot-reloading
+        // The scan functions have concurrency calls within them which is why we need to do this
+        SimpleScheduler current_thread_scheduler{};
+
+        AllocConsole();
+        freopen("CONOUT$", "w", stdout);
+
+        // Set up spdlog to sink to the console
+        spdlog::set_pattern("[%H:%M:%S] [%^%l%$] [ff7plugin] %v");
+        spdlog::set_level(spdlog::level::info);
+        spdlog::flush_on(spdlog::level::info);
+        spdlog::set_default_logger(spdlog::stdout_logger_mt("console"));
+
+        SPDLOG_INFO("FF7Plugin entry point");
+
         resolve_system_resolution();
         render_lights_patch();
     }
@@ -312,12 +362,12 @@ private:
     } m_cvars{};
 
     int32_t* m_system_resolution{nullptr};
+    uint32_t m_frame_index{0};
 
     std::unique_ptr<DirectX::DX12::GraphicsMemory> m_graphics_memory{};
     d3d12::CommandContext m_d3d12_commands[3]{};
     d3d12::TextureContext m_d3d12_ui_tex{};
 
-    uint32_t m_frame_index{0};
 
     void init_d3d12() {
         m_d3d12_ui_tex.reset();
