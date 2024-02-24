@@ -18,6 +18,7 @@
 #include "uevr/Plugin.hpp"
 
 using namespace uevr;
+
 HRESULT clear_d3d11_rt(ID3D11Device* device, ID3D11Texture2D* texture, const float* clear_color, std::optional<DXGI_FORMAT> format = std::nullopt) {
     // Create a temporary render target view
     // This is meant to be called infrequently so it's fine to create and destroy the view every time
@@ -46,7 +47,7 @@ HRESULT clear_d3d11_rt(ID3D11Device* device, ID3D11Texture2D* texture, const flo
     }
 
     // Clear the render target
-    ID3D11DeviceContext* context{nullptr};
+    d3d12::ComPtr<ID3D11DeviceContext> context{nullptr};
     device->GetImmediateContext(&context);
     context->ClearRenderTargetView(rtv.Get(), clear_color);
 
